@@ -3,6 +3,7 @@
 import axios from 'axios'
 import router from '@/router'
 import { Message } from 'element-ui'
+import { getCookie } from '@/utils/auth'
 
 const auth = {
   username: 'molychn',
@@ -19,6 +20,10 @@ axios.defaults.timeout = 10000
 axios.defaults.headers.post['Content-Type'] = 'application/json; charset=utf-8'
 
 axios.interceptors.request.use(config => {
+  let token = getCookie('token')
+  if (token) {
+    config.headers['token'] = token
+  }
   return config
 }, err => {
   Message.error({message: `请求错误，${err}`})

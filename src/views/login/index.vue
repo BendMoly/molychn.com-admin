@@ -18,6 +18,7 @@
 </template>
 
 <script>
+import { setCookie } from '@/utils/auth'
 export default {
   data () {
     return {
@@ -33,6 +34,8 @@ export default {
           account: this.account,
           password: this.password
         }).then(res => {
+          setCookie('token', res.data)
+          setCookie('account', this.account)
           console.log(res)
           this.$router.push({path: '/dashboard'})
         }).catch(() => {

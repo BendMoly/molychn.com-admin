@@ -17,9 +17,28 @@ import {
   Select,
   Option,
   Pagination,
-  DatePicker
+  DatePicker,
+  Menu,
+  Submenu,
+  MenuItem,
+  MenuItemGroup,
+  Row,
+  Col,
+  Table,
+  TableColumn,
+  Autocomplete,
+  Radio,
+  RadioGroup,
+  RadioButton,
+  Upload,
+  Tag,
+  Dialog
 } from 'element-ui'
 import axios from './utils/http'
+
+import mavonEditor from 'mavon-editor'
+import 'mavon-editor/dist/css/index.css'
+Vue.use(mavonEditor)
 
 const Components = [
   Form,
@@ -31,7 +50,22 @@ const Components = [
   Select,
   Option,
   Pagination,
-  DatePicker
+  DatePicker,
+  Menu,
+  Submenu,
+  MenuItem,
+  MenuItemGroup,
+  Row,
+  Col,
+  Table,
+  TableColumn,
+  Autocomplete,
+  Radio,
+  RadioGroup,
+  RadioButton,
+  Upload,
+  Tag,
+  Dialog
 ]
 Components.map(key => Vue.use(key))
 Vue.prototype.$msgbox = MessageBox

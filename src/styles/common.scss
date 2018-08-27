@@ -24,3 +24,28 @@ html, body{
 #app{
   height: 100%;
 }
+
+.el-menu-item .fa,
+.el-submenu .fa{
+  margin-right: 10px;
+}
+.el-upload{
+  margin: 0 10px;
+  width: 280px;
+}
+.el-upload-dragger{
+  width: 100%;
+}
+
+.area-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 1px;
+}
+.area-scroll::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+  border-radius: 6px;
+  background: #ccc;
+}
+.area-scroll::-webkit-scrollbar-track {/*滚动条里面轨道*/
+  border-radius: 6px;
+  background: #fff;
+}
