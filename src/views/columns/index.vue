@@ -10,16 +10,16 @@
       :key="index"
       >
         <div class="columns-list_items_title">
-          <span class="title_main">{{ item.title }}</span>/<span class="title_sub">{{ item.subTitle }}</span><label>({{ item.typeName }})</label>
+          <span class="title_main">{{ item.title }}</span>/<span class="title_sub">{{ item.subTitle }}</span><label>({{ item.temp | tempToName }})</label>
         </div>
         <div class="columns-list_items_tags">
           <el-tag
           v-for="tag in item.tags"
-          :key="tag.name"
+          :key="tag"
           closable
           @close="tagDel(item, tag)"
           :type="randomType(index)">
-            {{tag.name}}
+            {{tag}}
           </el-tag>
         </div>
       </div>
@@ -36,7 +36,7 @@
           <el-input v-model="columnsForm.icon" auto-complete="off"></el-input>
         </el-form-item>
         <el-form-item label="栏目模版" :label-width="formLabelWidth">
-          <el-select v-model="columnsForm.template" placeholder="请选择栏目模版">
+          <el-select v-model="columnsForm.temp" placeholder="请选择栏目模版">
             <el-option label="图文" value="text"></el-option>
             <el-option label="影集" value="album"></el-option>
           </el-select>
@@ -44,7 +44,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button size="small" @click="dialogFormVisible = false">取 消</el-button>
-        <el-button size="small" type="primary" @click="dialogFormVisible = false">确 定</el-button>
+        <el-button size="small" type="primary" @click="createColumnCommit">确 定</el-button>
       </div>
     </el-dialog>
   </section>
@@ -52,126 +52,41 @@
 
 <script>
 export default {
+  mounted () {
+    this.fetchData()
+  },
   data () {
     return {
       typeColor: 0,
-      columns: [
-        {
-          id: 0,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 1,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 2,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 3,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 4,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 5,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 6,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        },
-        {
-          id: 7,
-          title: '前端开发',
-          subTitle: 'FE',
-          type: 'text',
-          typeName: '图文',
-          tags: [
-            {name: 'biao1', id: 0},
-            {name: 'biao2', id: 1},
-            {name: 'biao3', id: 2},
-            {name: 'biao4', id: 3}
-          ]
-        }
-      ],
+      columns: [],
       dialogFormVisible: false,
       columnsForm: {
         title: '',
         subTitle: '',
         icon: '',
-        template: ''
+        temp: ''
       },
       formLabelWidth: '80px'
     }
   },
+  filters: {
+    tempToName (type) {
+      return type === 'text' ? '图文' : '影集'
+    }
+  },
   methods: {
+    fetchData () {
+      this.$http.get('/columns').then(res => {
+        this.columns = res.data
+      })
+    },
+    createColumnCommit () {
+      let normalizeData = this.columnsForm
+      this.$http.post('/columns', normalizeData).then(res => {
+        this.dialogFormVisible = false
+        this.fetchData()
+      })
+    },
     randomType (index) {
       while (index > 4) {
         index = index % 5

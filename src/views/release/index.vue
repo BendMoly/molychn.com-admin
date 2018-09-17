@@ -4,13 +4,14 @@
       <el-row :gutter="20">
         <el-col :span="2"><label>栏目：</label></el-col>
         <el-col :span="8">
-          <el-autocomplete
-          class="inline-input"
-          v-model="column"
-          :fetch-suggestions="querySearch"
-          placeholder="请输入内容"
-          @select="handleSelect"
-          ></el-autocomplete>
+          <el-select v-model="column" placeholder="请选择" @change="handleSelect">
+            <el-option
+              v-for="item in columns"
+              :key="item._id"
+              :label="item.title"
+              :value="item._id">
+            </el-option>
+          </el-select>
         </el-col>
         <el-col :span="2"><label>标签：</label></el-col>
         <el-col :span="12">
@@ -22,20 +23,20 @@
           default-first-option
           placeholder="请选择文章标签">
             <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
+              v-for="item in tagOptions"
+              :key="item"
+              :label="item"
+              :value="item">
             </el-option>
           </el-select>
         </el-col>
         <el-col :span="2"><label>标题：</label></el-col>
         <el-col :span="22">
-          <el-input></el-input>
+          <el-input v-model="title"></el-input>
         </el-col>
         <el-col :span="2"><label>摘要：</label></el-col>
         <el-col :span="22">
-          <el-input type="textarea"></el-input>
+          <el-input type="textarea" v-model="abstract"></el-input>
         </el-col>
       </el-row>
       <el-input placeholder="光秃秃去给人看，你愿意么" readonly>
@@ -47,7 +48,7 @@
     <mavon-editor v-model="markdown" :ishljs="true" codeStyle="xcode" :scrollStyle="true"/>
     <div class="release-btn">
       <el-button><i class="fa fa-folder-open"></i>存入草稿箱</el-button>
-      <el-button type="primary" :loading="true"><i class="fa fa-send"></i>发表</el-button>
+      <el-button type="primary" @click="sendArticle"><i class="fa fa-send"></i>发表</el-button>
     </div>
     <div class="folder-images" ref="imgSource" :class="{'folder-images_move': moveIn}">
       <div class="folder-images_title">图片素材</div>
@@ -71,8 +72,12 @@
           </el-col>
         </el-row>
         <el-upload
+          ref="uploadForm"
           drag
-          action="https://jsonplaceholder.typicode.com/posts/"
+          action="http://upload.qiniup.com"
+          :data="uploadData"
+          :before-upload="beforeUpload"
+          :on-success="successUpload"
           multiple>
           <i class="el-icon-upload"></i>
           <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
@@ -102,47 +107,22 @@
 import { on, off } from '@/utils/dom'
 export default {
   mounted () {
-    // this.reference = this.$refs.imgSource
-    // on(document, 'click', this.handleDocumentClick)
+    this.fetchColumns()
   },
   data () {
     return {
       columns: [],
       column: '',
+      columnName: '',
       tags: [],
-      options: [{
-        value: 'HTML',
-        label: 'HTML'
-      }, {
-        value: 'CSS',
-        label: 'CSS'
-      }, {
-        value: 'JavaScript',
-        label: 'JavaScript'
-      }],
-      type: 'all',
+      tagOptions: [],
+      title: '',
+      abstract: '',
       markdown: '',
+      qiniuToken: '',
+      uploadData: null,
+      type: 'all',
       images_source: [
-        {
-          src: '',
-          name: '',
-          type: 0
-        },
-        {
-          src: '',
-          name: '',
-          type: 0
-        },
-        {
-          src: '',
-          name: '',
-          type: 0
-        },
-        {
-          src: '',
-          name: '',
-          type: 0
-        },
         {
           src: '',
           name: '',
@@ -155,22 +135,92 @@ export default {
     }
   },
   methods: {
-    querySearch (queryString, cb) {
-      let columns = this.columns
-      let results = queryString ? columns.filter(this.createFilter(queryString)) : columns
-      // 调用 callback 返回建议列表的数据
-      cb(results)
+    // 判断是编辑还是发布
+    checkEditStatus () {
+      let id = this.$route.query.id
+      if (id && typeof id === 'string') {
+        this.$http.get(`/articles/${id}`).then(res => {
+          for (let i = 0; i < this.columns.length; i++) {
+            if (res.data.columnId == this.columns[i]._id) {
+              this.column = this.columns[i].title
+              this.tagOptions = this.columns[i].tags
+            }
+          }
+          this.tags = res.data.tags
+          this.title = res.data.title
+          this.abstract = res.data.abstract
+          this.markdown = res.data.content
+        })
+      }
     },
-    handleSelect (item) {
-      console.log(item) //  input自动填充
+    fetchColumns () {
+      this.$http.get('/columns').then(res => {
+        this.columns = res.data
+        this.checkEditStatus()
+      })
+    },
+    handleSelect (id) {
+      let tagOptions = []
+      let res = this.columns.filter((item) => {
+        return item._id === id
+      })
+      this.tagOptions = res[0].tags
+      this.columnName = res[0].title
+    },
+    sendArticle () {
+      let normalizeData = {
+        title: this.title,
+        abstract: this.abstract,
+        columnId: this.column,
+        columnName: this.columnName,
+        tags: this.tags,
+        content: this.markdown
+      }
+      this.$http.post('/articles', normalizeData).then(res => {
+        this.$message({
+          type: 'success',
+          message: '发表成功'
+        })
+      })
+    },
+    // 素材上传操作
+    getQiniuToken (file) {
+      this.$http.get('/upload').then(res => {
+        this.qiniuToken = res.data
+        this.uploadData = {
+          token: res.data
+        }
+      })
+    },
+    beforeUpload (file) {
+      return new Promise((resolve, reject) => {
+        this.uploadData = {
+          token: this.qiniuToken,
+          key: file.name,
+          fname: file.name
+        }
+        if (this.uploadData.fname) {
+          console.log(this.uploadData)
+          setTimeout(() => {
+            resolve(true)
+          }, 200)
+        } else {
+          reject(new Error('the fname is empty'))
+        }
+      })
+    },
+    successUpload () {
+      this.$refs.uploadForm.clearFiles()
     },
     showSource () {
       this.moveIn = true
+      this.getQiniuToken()
       on(document, 'click', this.handleDocumentClick)
     },
     showSourceToggle () {
       this.moveIn = !this.moveIn
       if (this.moveIn) {
+        this.getQiniuToken()
         on(document, 'click', this.handleDocumentClick)
       } else {
         off(document, 'click', this.handleDocumentClick)

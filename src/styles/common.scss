@@ -24,7 +24,9 @@ html, body{
 #app{
   height: 100%;
 }
-
+.el-menu{
+  border: none;
+}
 .el-menu-item .fa,
 .el-submenu .fa{
   margin-right: 10px;

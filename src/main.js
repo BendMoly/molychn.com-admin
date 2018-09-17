@@ -5,6 +5,7 @@ import App from './App'
 import router from './router'
 import 'element-ui/lib/theme-chalk/index.css'
 import './styles/common.scss'
+import filters from './filters'
 import {
   Form,
   FormItem,
@@ -74,6 +75,7 @@ Vue.prototype.$confirm = MessageBox.confirm
 Vue.prototype.$prompt = MessageBox.prompt
 Vue.prototype.$message = Message
 Vue.config.productionTip = false
+Object.keys(filters).forEach(key => Vue.filter(key, filters[key]))
 
 // axios configuration
 Vue.prototype.$http = axios
