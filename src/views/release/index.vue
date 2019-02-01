@@ -181,6 +181,13 @@ export default {
           type: 'success',
           message: '发表成功'
         })
+        this.title = ''
+        this.abstract = ''
+        this.column = ''
+        this.columnName = ''
+        this.tags = []
+        this.banner = ''
+        this.markdown = ''
       })
     },
     // 素材上传操作
