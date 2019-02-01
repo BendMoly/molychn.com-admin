@@ -9,7 +9,7 @@ const auth = {
   username: 'molychn',
   password: 'lincanyue'
 }
-const baseURL = 'http://127.0.0.1:12580/admin/v1'
+const baseURL = 'http://molychn.com:12580/admin/v1'
 const reject = (err) => {
   return Promise.reject(err)
 }

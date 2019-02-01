@@ -39,10 +39,9 @@
           <el-input type="textarea" v-model="abstract"></el-input>
         </el-col>
       </el-row>
-      <el-input placeholder="光秃秃去给人看，你愿意么" readonly>
-        <template slot="prepend">
-          <el-button type="primary" @click.stop="showSource">来一张封面图？</el-button>
-        </template>
+      <el-input v-model="banner" placeholder="光秃秃去给人看，你愿意么" readonly>
+        <el-button slot="prepend" type="primary" @click.stop="showSource">来一张封面图？</el-button>
+        <el-button slot="append" class="fa fa-close" @click.stop="banner = ''"></el-button>
       </el-input>
     </div>
     <mavon-editor v-model="markdown" :ishljs="true" codeStyle="xcode" :scrollStyle="true"/>
@@ -53,7 +52,7 @@
     <div class="folder-images" ref="imgSource" :class="{'folder-images_move': moveIn}">
       <div class="folder-images_title">图片素材</div>
       <div class="folder-images_types">
-        <el-radio-group v-model="type">
+        <el-radio-group v-model="type" @change="sourceFilter">
           <el-radio label="all">全部</el-radio>
           <el-radio label="banner">封面</el-radio>
         </el-radio-group>
@@ -67,6 +66,7 @@
           >
             <div class="folder-images_items" @click="sourceSlt(index)">
               <i class="fa fa-close folder-images_items_close" @click.stop="sourceDel(item)"></i>
+              <img :src="item.src" alt="">
               <div class="folder-images_item_selected" v-show="sourceIdx == index"><i class="fa fa-check-circle-o"></i></div>
             </div>
           </el-col>
@@ -86,13 +86,13 @@
       <div class="folder-images_source">
         <el-row>
           <el-col :span="24">
-            <el-input size="mini" placeholder="图片名" readonly></el-input>
+            <el-input v-model="imgName" size="mini" placeholder="图片名" readonly></el-input>
           </el-col>
           <el-col :span="24">
-            <el-input size="mini" placeholder="线上地址" readonly></el-input>
+            <el-input v-model="imgSrc" size="mini" placeholder="线上地址" readonly></el-input>
           </el-col>
         </el-row>
-        <el-button type="primary" size="small" class="folder-images_source_btn">就决定是你了</el-button>
+        <el-button type="primary" size="small" class="folder-images_source_btn" @click="imgSelect">就决定是你了</el-button>
       </div>
       <div class="folder-images_toggle" @click.stop="showSourceToggle">
         <div :class="{'angle-rotate-box': moveIn}">
@@ -108,6 +108,7 @@ import { on, off } from '@/utils/dom'
 export default {
   mounted () {
     this.fetchColumns()
+    this.fetchSource()
   },
   data () {
     return {
@@ -118,20 +119,18 @@ export default {
       tagOptions: [],
       title: '',
       abstract: '',
+      banner: '',
       markdown: '',
       qiniuToken: '',
       uploadData: null,
-      type: 'all',
-      images_source: [
-        {
-          src: '',
-          name: '',
-          type: 0
-        }
-      ],
-      sourceIdx: -1,
       reference: null,
-      moveIn: false
+      moveIn: false,
+      type: 'all',
+      images_source: [],
+      images_source_backup: [],
+      sourceIdx: -1,
+      imgName: '',
+      imgSrc: ''
     }
   },
   methods: {
@@ -141,7 +140,7 @@ export default {
       if (id && typeof id === 'string') {
         this.$http.get(`/articles/${id}`).then(res => {
           for (let i = 0; i < this.columns.length; i++) {
-            if (res.data.columnId == this.columns[i]._id) {
+            if (res.data.columnId === this.columns[i]._id) {
               this.column = this.columns[i].title
               this.tagOptions = this.columns[i].tags
             }
@@ -149,6 +148,7 @@ export default {
           this.tags = res.data.tags
           this.title = res.data.title
           this.abstract = res.data.abstract
+          this.banner = res.data.banner
           this.markdown = res.data.content
         })
       }
@@ -160,7 +160,6 @@ export default {
       })
     },
     handleSelect (id) {
-      let tagOptions = []
       let res = this.columns.filter((item) => {
         return item._id === id
       })
@@ -174,6 +173,7 @@ export default {
         columnId: this.column,
         columnName: this.columnName,
         tags: this.tags,
+        banner: this.banner,
         content: this.markdown
       }
       this.$http.post('/articles', normalizeData).then(res => {
@@ -184,51 +184,77 @@ export default {
       })
     },
     // 素材上传操作
-    getQiniuToken (file) {
-      this.$http.get('/upload').then(res => {
-        this.qiniuToken = res.data
-        this.uploadData = {
-          token: res.data
-        }
+    getQiniuToken () {
+      return new Promise((resolve, reject) => {
+        this.$http.get('/upload').then(res => {
+          resolve(res.data)
+        }).catch(err => {
+          reject(err)
+        })
       })
     },
     beforeUpload (file) {
       return new Promise((resolve, reject) => {
-        this.uploadData = {
-          token: this.qiniuToken,
-          key: file.name,
-          fname: file.name
-        }
-        if (this.uploadData.fname) {
-          console.log(this.uploadData)
+        this.getQiniuToken().then(res => {
+          this.uploadData = {
+            token: res,
+            key: file.name,
+            fname: file.name
+          }
           setTimeout(() => {
             resolve(true)
           }, 200)
-        } else {
-          reject(new Error('the fname is empty'))
-        }
+        })
       })
     },
-    successUpload () {
+    successUpload (res, file) {
+      console.log(res)
+      console.log(file)
+      this.fetchSource()
       this.$refs.uploadForm.clearFiles()
+    },
+    fetchSource () {
+      this.$http.get('/uploads').then(res => {
+        console.log(res)
+        this.sourceInit()
+        this.images_source = this.images_source_backup = res.data.items
+      })
     },
     showSource () {
       this.moveIn = true
-      this.getQiniuToken()
       on(document, 'click', this.handleDocumentClick)
     },
     showSourceToggle () {
       this.moveIn = !this.moveIn
       if (this.moveIn) {
-        this.getQiniuToken()
+        this.sourceInit()
         on(document, 'click', this.handleDocumentClick)
       } else {
+        this.sourceInit()
         off(document, 'click', this.handleDocumentClick)
       }
     },
+    sourceInit () {
+      this.sourceIdx = -1
+      this.imgName = ''
+      this.imgSrc = ''
+    },
     sourceSlt (idx) {
-      console.log(idx)
+      // 判断所选图片是否可作为banner
+      if (!this.images_source[idx].isBanner) return
       this.sourceIdx = idx
+      let temps = this.images_source[idx].src.split('/')
+      this.imgName = temps[temps.length - 1]
+      this.imgSrc = this.images_source[idx].src
+    },
+    sourceFilter (val) {
+      console.log(val)
+      this.sourceInit()
+      if (val === 'banner') {
+        this.images_source = this.images_source.filter(item => item.isBanner)
+      } else {
+        this.images_source = this.images_source_backup
+      }
     },
     sourceDel (item) {
       console.log(item)
@@ -247,6 +273,10 @@ export default {
           message: '已取消删除'
         })
       })
+    },
+    imgSelect () {
+      this.banner = this.imgSrc
+      this.showSourceToggle()
     },
     handleDocumentClick (e) {
       let reference = this.$refs.imgSource
@@ -331,11 +361,15 @@ export default {
   position: relative;
   // width: 100%;
   margin: 0 10px;
-  min-height: 100px;
+  // min-height: 100px;
   border: 1px solid #ebebeb;
   border-radius: 4px;
   // overflow: hidden;
   cursor: pointer;
+  img{
+    width: 100%;
+    vertical-align: middle;
+  }
 }
 .folder-images_items:hover .folder-images_items_close{
   visibility: visible;
